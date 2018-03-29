@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[22]:
 
 
 import requests
@@ -42,10 +42,12 @@ def handleQ(page):
     qID=question['data-questionid']
     if question.find('a',href=re.compile(r'^/users/') ) is not None:
         ownerID=question.find('a',href=re.compile(r'^/users/'))['href'].split('users/')[1].split('/')[0]
-    else: callAPI=True
+    else: ownerID='0'
     if question.find('div',class_='user-action-time') is not None:
         create_time=question.find('div',class_='user-action-time').find('span')['title'].split('Z')[0]
     else: cacllAPI=True 
+    if ownerID=='0' or ownerID=='-1' :
+        callAPI=True
     posts=""
     for x in question.find('div',class_='post-text').children:
         posts+=str(x)
@@ -57,9 +59,12 @@ def handleQ(page):
             else: tags=tags+","+x.text
     last_active_time='0000-00-00 00:00:00'
     if callAPI:
+        global callCount
+        callCount+=1
         print(' callAPI-Question')
         APIurl="https://api.stackexchange.com/2.2/questions/"+qID+"?order=desc&sort=activity&site=stackoverflow"
-        info=(requests.get(url=url).json())['items'][0]
+        print(APIurl)
+        info=(requests.get(APIurl).json())['items'][0]
         if 'user_id' in info['owner']:
             ownerID=str(info['owner']['user_id'])
         else: ownerID='0'
@@ -97,14 +102,19 @@ def handleA(page,right_ans):
         score=answer.find('span',itemprop='upvoteCount').text
         if answer.find('a',href=re.compile(r'^/users/')) is not None:
             ownerID=answer.find('a',href=re.compile(r'^/users/'))['href'].split('users/')[1].split('/')[0]
-        else: callAPI=True
+        else: ownerID='0'
         if answer.find('div',class_='user-action-time') is not None:
             create_time=answer.find('div',class_='user-action-time').find('span')['title'].split('Z')[0]
         else:callAPI=True
+        if ownerID=='0' or ownerID=='-1' :
+            callAPI=True
         if callAPI:
+            global callCount
+            callCount+=1
             print(' callAPI-Answer')
-            APIurl="https://api.stackexchange.com/2.2/questions/"+aID+"?order=desc&sort=activity&site=stackoverflow"
-            info=(requests.get(url=url).json())['items'][0]
+            APIurl="https://api.stackexchange.com/2.2/answers/"+aID+"?order=desc&sort=activity&site=stackoverflow"
+            print(APIurl)
+            info=(requests.get(APIurl).json())['items'][0]
             if 'user_id' in info['owner']:
                 ownerID=str(info['owner']['user_id'])
             else: ownerID='0'
@@ -138,6 +148,8 @@ def GetQuestionInfo(s,e,mi,ma=""):
     minscore=mi
     maxscore=ma
     while True: #每次迴圈就是翻一頁
+        global callCount
+        callCount+=1
         url="https://api.stackexchange.com/2.2/questions?page="+str(page)+"&pagesize="+str(psize)+"&fromdate="+str(start)+"&todate="+str(end)+"&order=desc&min="+str(minscore)+"&max="+str(maxscore)+"&sort=votes&site=stackoverflow"
         text=requests.get(url=url).json()
         for question in text['items']:
@@ -148,14 +160,24 @@ def GetQuestionInfo(s,e,mi,ma=""):
         if 'backoff' in text:
             time.sleep(text['backoff'])
     return Qlist
-
-db = pymysql.connect("140.138.77.90","knkn","tp6bjo4u;6","knkn",use_unicode=True, charset="utf8mb4")
+me=json.loads(open('account.json',encoding = 'utf8').read().encode('utf8'))
+db = pymysql.connect(me['host'],me['username'],me['password'],me['db'],use_unicode=True, charset="utf8mb4")
 cursor = db.cursor()
-
-qIDs=GetqIDs('2016-01-01 12:00:00','2016-01-01 23:59:59',5)
+#start_time=input('start time(YYYY-MM-DD HH:MM:SS): ')
+#end_time=input('end time(YYYY-MM-DD HH:MM:SS): ')
+#try:
+#    t=dttounix(start_time)
+#    t=dttounix(end_time)
+#except:
+#    print('time format error')
+#min_score=str(input('min score: '))
+#max_score=str(input('max score: '))
+#qIDs=GetqIDs(start_time,end_time,min_score,max_score)
+qIDs=GetqIDs('2018-02-02 00:00:00','2018-02-02 23:59:59',5)
 print('\rall ',len(qIDs),' qIDs are loaded')
 print('crawling data now..')
 counter=1
+callCount=0
 for qID in qIDs:
     url="https://stackoverflow.com/questions/"+qID
     page=bs(requests.get(url).text,'html.parser')
@@ -166,5 +188,6 @@ for qID in qIDs:
     sys.stdout.flush()
     counter+=1
 db.close()
+print('Call API ',callCount,' times')
 print("\nProgress Finish!!")
 
