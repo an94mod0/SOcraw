@@ -1,9 +1,3 @@
-
-# coding: utf-8
-
-# In[22]:
-
-
 import requests
 from bs4 import BeautifulSoup as bs
 import types
@@ -28,7 +22,11 @@ def unixtodt(unix):
         return str(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(unix))))
     else:
         return str(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(unix)))
-#餵BS物件，完成question爬取與executeSQL，吐被採用答案(right_ans)
+    
+
+#crawl question,comment and upload to database, inquire API if necessary
+#parameter: beautyfulsoup object of one question page
+#return: right answer of this question, 0 if not found
 def handleQ(page):
     callAPI=False
     if page.find('span',class_='vote-accepted-on load-accepted-answer-date') is not None:
@@ -61,9 +59,9 @@ def handleQ(page):
     if callAPI:
         global callCount
         callCount+=1
-        print(' callAPI-Question')
         APIurl="https://api.stackexchange.com/2.2/questions/"+qID+"?order=desc&sort=activity&site=stackoverflow"
-        print(APIurl)
+        #print(' callAPI-Question')
+        #print(APIurl)
         info=(requests.get(APIurl).json())['items'][0]
         if 'user_id' in info['owner']:
             ownerID=str(info['owner']['user_id'])
@@ -88,7 +86,9 @@ def handleQ(page):
     if add_comment[-2]!='S': cursor.execute(add_comment+";")
     return right_ans
 
-#餵BS物件與被採用答案，完成Answer爬取與executeSQL
+#crawl answer,comment and upload to database, inquire API if necessary
+#parameter: beautyfulsoup object of one question page
+#return: none
 def handleA(page,right_ans):
     add_answer="INSERT INTO `knkn`.`answers`VALUES "
     for answer in page.find_all('div',id=re.compile(r'^answer-') ):
@@ -111,9 +111,9 @@ def handleA(page,right_ans):
         if callAPI:
             global callCount
             callCount+=1
-            print(' callAPI-Answer')
             APIurl="https://api.stackexchange.com/2.2/answers/"+aID+"?order=desc&sort=activity&site=stackoverflow"
-            print(APIurl)
+            #print(' callAPI-Answer')
+            #print(APIurl)
             info=(requests.get(APIurl).json())['items'][0]
             if 'user_id' in info['owner']:
                 ownerID=str(info['owner']['user_id'])
@@ -138,56 +138,61 @@ def handleA(page,right_ans):
     if add_answer[-2]!='S': 
         cursor.execute(add_answer+";")
 
-#餵起訖時間回傳有一堆questionID的陣列
-def GetQuestionInfo(s,e,mi,ma=""):
+#use API to get list of qID
+#parameter: start time,end time,min score,max score (all str type)
+#return: list contain all qID (str type)
+def GetqIDs(s,e,mi='0',ma=""):
     Qlist=[]
     start=dttounix(s)
     end=dttounix(e)
     page=1
-    psize=100 #一頁有100個question object
+    psize=100 #100 question object / page
     minscore=mi
     maxscore=ma
-    while True: #每次迴圈就是翻一頁
+    while True: #one page every loop
         global callCount
         callCount+=1
+        sys.stdout.write('\rloading page '+str(page))
+        sys.stdout.flush()
         url="https://api.stackexchange.com/2.2/questions?page="+str(page)+"&pagesize="+str(psize)+"&fromdate="+str(start)+"&todate="+str(end)+"&order=desc&min="+str(minscore)+"&max="+str(maxscore)+"&sort=votes&site=stackoverflow"
         text=requests.get(url=url).json()
         for question in text['items']:
-            qid=question['question_id']
+            qid=str(question['question_id'])
             Qlist.append(qid)
         if text["has_more"]: page+=1
         else: break
         if 'backoff' in text:
             time.sleep(text['backoff'])
     return Qlist
+
 me=json.loads(open('account.json',encoding = 'utf8').read().encode('utf8'))
 db = pymysql.connect(me['host'],me['username'],me['password'],me['db'],use_unicode=True, charset="utf8mb4")
 cursor = db.cursor()
-#start_time=input('start time(YYYY-MM-DD HH:MM:SS): ')
-#end_time=input('end time(YYYY-MM-DD HH:MM:SS): ')
-#try:
-#    t=dttounix(start_time)
-#    t=dttounix(end_time)
-#except:
-#    print('time format error')
-#min_score=str(input('min score: '))
-#max_score=str(input('max score: '))
-#qIDs=GetqIDs(start_time,end_time,min_score,max_score)
-qIDs=GetqIDs('2018-02-02 00:00:00','2018-02-02 23:59:59',5)
+callCount=0
+# # set factor
+# start_time=input('start time(YYYY-MM-DD HH:MM:SS): ')
+# end_time=input('end time(YYYY-MM-DD HH:MM:SS): ')
+# try:
+   # t=dttounix(start_time)
+   # t=dttounix(end_time)
+# except:
+   # print('time format error')
+# min_score=str(input('min score: '))
+# max_score=str(input('max score: '))
+# qIDs=GetqIDs(start_time,end_time,min_score,max_score)
+qIDs=GetqIDs('2018-03-20 00:00:00','2018-03-22 23:59:59',5)
 print('\rall ',len(qIDs),' qIDs are loaded')
 print('crawling data now..')
 counter=1
-callCount=0
 for qID in qIDs:
     url="https://stackoverflow.com/questions/"+qID
     page=bs(requests.get(url).text,'html.parser')
     right_ans=handleQ(page)
     handleA(page,right_ans)
     db.commit()
-    sys.stdout.write('\r完成度: {:.2%}'.format(counter/len(qIDs)))
+    sys.stdout.write('\rProgress Rate: {:.2%}'.format(counter/len(qIDs)))
     sys.stdout.flush()
     counter+=1
 db.close()
-print('Call API ',callCount,' times')
-print("\nProgress Finish!!")
-
+print('\nCall API ',callCount,' times')
+print("Progress Finish!!")
