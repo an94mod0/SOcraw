@@ -6,7 +6,7 @@ import pymysql
 import time
 import sys
 import json
-#上傳文字到SQL前做跳脫處理
+#rewrite string to fit SQL syntax
 def apostrophed(text):
     new_text=""
     for c in text:
@@ -14,7 +14,7 @@ def apostrophed(text):
         elif c=='\\': new_text+=""
         else : new_text+=c
     return new_text
-#把DATETIME轉成UNIXtime
+
 def dttounix(dt):
     return int(time.mktime(time.strptime(dt, '%Y-%m-%d %H:%M:%S')))
 def unixtodt(unix):
@@ -180,7 +180,7 @@ callCount=0
 # min_score=str(input('min score: '))
 # max_score=str(input('max score: '))
 # qIDs=GetqIDs(start_time,end_time,min_score,max_score)
-qIDs=GetqIDs('2018-03-20 00:00:00','2018-03-22 23:59:59',5)
+qIDs=GetqIDs('2018-03-23 00:00:00','2018-03-25 23:59:59',5)
 print('\rall ',len(qIDs),' qIDs are loaded')
 print('crawling data now..')
 counter=1
