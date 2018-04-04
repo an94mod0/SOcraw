@@ -7,7 +7,7 @@ import time
 import sys
 import json
 #rewrite string to fit SQL syntax
-def apostrophed(text):
+def FixText(text):
     new_text=""
     for c in text:
         if c=='\'': new_text+="''"
@@ -68,7 +68,7 @@ def handleQ(page):
         else: ownerID='0'
         create_time=unixtodt(info['creation_date'])
         last_active_time=unixtodt(info['last_activity_date'])
-    add_question="INSERT INTO `knkn`.`questions` VALUES (NULL, '"+str(qID)+"', '"+apostrophed(title)+"', '"+tags+"', '"+ownerID+"', '"+score+"', '"+solved+"', '"+create_time+"', '"+last_active_time+"', '"+apostrophed(posts)+"');"
+    add_question="INSERT INTO `knkn`.`questions` VALUES (NULL, '"+str(qID)+"', '"+FixText(title)+"', '"+tags+"', '"+ownerID+"', '"+score+"', '"+solved+"', '"+create_time+"', '"+last_active_time+"', '"+FixText(posts)+"');"
     add_comment="INSERT INTO  `knkn`.`comments` VALUES "
     #comment part
     for comm in question.find_all('li',id=re.compile(r'^comment-')):
@@ -78,10 +78,10 @@ def handleQ(page):
         if comm.find('a',class_=re.compile(r'^comment-user')) is not None:
             ownerID=comm.find('a',class_=re.compile(r'^comment-user'))['href'].split('users/')[1].split('/')[0]
         if comm.find('span',class_='relativetime-clean') is not None:
-            time=comm.find('span',class_='relativetime-clean')['title'].split('Z')[0]
-        else: time='0000-00-00 00:00:00'
+            create_time=comm.find('span',class_='relativetime-clean')['title'].split('Z')[0]
+        else: create_time='0000-00-00 00:00:00'
         if add_comment[-2]!='S': add_comment+=","
-        add_comment+="(NULL, '"+cID+"', '"+qID+"','0','"+ownerID+"', '"+time+"', '"+apostrophed(comment)+"')"
+        add_comment+="(NULL, '"+cID+"', '"+qID+"','0','"+ownerID+"', '"+create_time+"', '"+FixText(comment)+"')"
     cursor.execute(add_question)
     if add_comment[-2]!='S': cursor.execute(add_comment+";")
     return right_ans
@@ -105,7 +105,7 @@ def handleA(page,right_ans):
         else: ownerID='0'
         if answer.find('div',class_='user-action-time') is not None:
             create_time=answer.find('div',class_='user-action-time').find('span')['title'].split('Z')[0]
-        else:callAPI=True
+        else: callAPI=True
         if ownerID=='0' or ownerID=='-1' :
             callAPI=True
         if callAPI:
@@ -120,7 +120,7 @@ def handleA(page,right_ans):
             else: ownerID='0'
             create_time=unixtodt(info['creation_date'])
         if add_answer[-2]!='S':add_answer+=","
-        add_answer+="(NULL, '"+aID+"', '"+qID+"', '"+ownerID+"', '"+score+"', '"+solved+"', '"+create_time+"', '"+apostrophed(posts)+"')"
+        add_answer+="(NULL, '"+aID+"', '"+qID+"', '"+ownerID+"', '"+score+"', '"+solved+"', '"+create_time+"', '"+FixText(posts)+"')"
         #comment part
         add_comment="INSERT INTO  `knkn`.`comments` VALUES "
         for comm in answer.find_all('li',id=re.compile(r'^comment-')):
@@ -133,7 +133,7 @@ def handleA(page,right_ans):
                 create_time=comm.find('span',class_='relativetime-clean')['title'].split('Z')[0]
             else: create_time='0000-00-00 00:00:00'
             if add_comment[-2]!='S': add_comment+=","
-            add_comment+="(NULL, '"+cID+"', '"+aID+"','1','"+ownerID+"', '"+create_time+"', '"+apostrophed(comment)+"')"
+            add_comment+="(NULL, '"+cID+"', '"+aID+"','1','"+ownerID+"', '"+create_time+"', '"+FixText(comment)+"')"
         if add_comment[-2]!='S': cursor.execute(add_comment+";")
     if add_answer[-2]!='S': 
         cursor.execute(add_answer+";")
@@ -166,9 +166,9 @@ def GetqIDs(s,e,mi='0',ma=""):
     return Qlist
 
 me=json.loads(open('account.json',encoding = 'utf8').read().encode('utf8'))
-db = pymysql.connect(me['host'],me['username'],me['password'],me['db'],use_unicode=True, charset="utf8mb4")
+db = pymysql.connect(me['host'],me['username'],me['password'],me['db'],use_unicode=True,charset="utf8mb4",autocommit=True)
 cursor = db.cursor()
-callCount=0
+callCount=0 #increase when call API
 # # set factor
 # start_time=input('start time(YYYY-MM-DD HH:MM:SS): ')
 # end_time=input('end time(YYYY-MM-DD HH:MM:SS): ')
@@ -180,7 +180,7 @@ callCount=0
 # min_score=str(input('min score: '))
 # max_score=str(input('max score: '))
 # qIDs=GetqIDs(start_time,end_time,min_score,max_score)
-qIDs=GetqIDs('2018-03-23 00:00:00','2018-03-25 23:59:59',5)
+qIDs=GetqIDs('2016-12-01 00:00:00','2016-12-10 23:59:59',5)
 print('\rall ',len(qIDs),' qIDs are loaded')
 print('crawling data now..')
 counter=1
@@ -189,7 +189,6 @@ for qID in qIDs:
     page=bs(requests.get(url).text,'html.parser')
     right_ans=handleQ(page)
     handleA(page,right_ans)
-    db.commit()
     sys.stdout.write('\rProgress Rate: {:.2%}'.format(counter/len(qIDs)))
     sys.stdout.flush()
     counter+=1
