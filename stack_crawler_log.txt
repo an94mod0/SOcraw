@@ -1,0 +1,21 @@
+Progress start at 2018-04-07 22:12:11
+Data is questions from 2017-06-05 00:00:00 to 2017-06-10 23:59:59 and score bigger than 20
+Find 65 questions 
+Call API 5 times
+Progress Finish at 2018-04-07 22:14:21Progress start at 2018-04-07 22:15:51
+Data is questions from 2017-06-11 00:00:00 to 2017-06-19 23:59:59 and score bigger than 20
+Find 61 questions
+Call API 1 times
+Progress Finish at 2018-04-07 22:17:41
+
+Progress start at 2018-04-07 22:18:31
+Data is questions from 2017-06-20 00:00:00 to 2017-06-30 23:59:59 and score bigger than 20
+Find 61 questions
+Call API 2 times
+Progress Finish at 2018-04-07 22:20:20
+
+Progress start at 2018-04-07 22:27:54
+Data is questions from 2017-05-01 00:00:00 to 2017-05-15 23:59:59 and score bigger than 20
+Find 74 questions
+Call API 14 times
+Progress Finish at 2018-04-07 22:30:20
