@@ -19,3 +19,26 @@ Data is questions from 2017-05-01 00:00:00 to 2017-05-15 23:59:59 and score bigg
 Find 74 questions
 Call API 14 times
 Progress Finish at 2018-04-07 22:30:20
+
+Progress start at 2018-04-10 21:59:39
+Data is questions from 2017-04-16 00:00:00 to 2017-04-31 23:59:59 and score bigger than 20
+Find 0 questions
+Call API 1 times
+Progress Finish at 2018-04-10 21:59:41
+
+Progress start at 2018-04-10 22:00:07
+Data is questions from 2017-04-16 00:00:00 to 2017-04-30 23:59:59 and score bigger than 20
+Find 95 questions
+An error occur at 2018-04-10 22:09:34
+ running qid: 43618487
+<class 'KeyboardInterrupt'>
+
+ Progress die.
+Progress start at 2018-04-10 22:09:55
+Data is questions from 2017-04-16 00:00:00 to 2017-04-30 23:59:59 and score bigger than 20
+Find 95 questions
+An error occur at 2018-04-10 22:41:51
+ running qid: 43557321
+<class 'KeyError'>
+'items'
+ Progress die.
